@@ -13,6 +13,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+
+#define INTERVAL 1
+
 long *my_ipconfig(char *ath0)
 {
 	int nDevLen = strlen(ath0);
@@ -69,18 +72,32 @@ long *my_ipconfig(char *ath0)
 	return rx2_tx10;
 }
 
+void process_ifconfig(const long *result,double* data_rec,double* data_trans)
+{
+	*data_rec=(double)result[0]/1024;
+	*data_trans=(double)result[1]/1024;
+}
+
 int main()
 {
-	long *ifconfig_result;
-	double re_mb;
-	/*eth0 是博主计算机上的网卡的名字*/
-	ifconfig_result = my_ipconfig("enp0s3");
-	/*保存在文件中的数值的单位是B，经过计算换算成MB*/
-	re_mb = (double)ifconfig_result[0]/(1024*1024);
-	printf("接收流量：%0.2f MB\n",re_mb);
-	/*保存在文件中的数值的单位是B，经过计算换算成MB*/
-	re_mb = (double)ifconfig_result[1]/(1024*1024);
-	printf("发送流量：%0.2f MB\n",re_mb);
+	long* ifconfig_result;
+	double r_mb;
+	double t_mb;
+	double last_r_mb=0;
+	double last_t_mb=0;
+	printf("received KB\t\ttransmitted KB\t\tin the last %d second(s)\n",INTERVAL);
+	while(1)
+	{
+//		printf("\r\033[k");
+		/*eth0 是博主计算机上的网卡的名字*/
+		ifconfig_result = my_ipconfig("enp0s3");
+		process_ifconfig(ifconfig_result,&r_mb,&t_mb);
+		printf("%0.3f\t\t\t",r_mb-last_r_mb);
+		printf("%0.3f\t\t\n",t_mb-last_t_mb);
+		last_r_mb=r_mb;
+		last_t_mb=t_mb;
+		sleep(INTERVAL);	
+	}
 	return 0;
 }
 /*
